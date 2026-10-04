@@ -190,7 +190,7 @@ with tab1:
     st.header("📲 Envoyer une demande d'avis")
     
     if plan_actuel == "STANDARD" and total_envois >= LIMITE_CREDITS_STANDARD:
-        st.error("⚠️️ Vous avez atteint la limite de 5 SMS gratuits de la Formule STANDARD. Passez à la formule PRO ou EXPERT pour débloquer les SMS illimités.")
+        st.error("⚠️ Vous avez atteint la limite de 5 SMS gratuits de la Formule STANDARD. Passez à la formule PRO ou EXPERT pour débloquer les SMS illimités.")
     else:
         col_c1, col_c2 = st.columns(2)
         with col_c1:
@@ -232,12 +232,12 @@ with tab2:
         else:
             st.warning("⚠️ Vous n'avez pas encore procédé au paiement pour cette formule.")
             
-            # Guichet FedaPay à hauteur de 650px pour afficher l'ensemble des pays et méthodes de paiement sans défilement
+            # Bouton déclenchant l'ouverture de la page complète
             fedapay_pro_html = f'''
             <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-            <div style="padding: 10px 0;">
-                <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 16px 28px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                    💳 Procéder au paiement (15 000 XOF)
+            <div style="padding: 15px 0;">
+                <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 18px 24px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    💳 Payer la Formule PRO (15 000 XOF)
                 </button>
             </div>
             <script>
@@ -247,13 +247,13 @@ with tab2:
                     customer: {{ email: "{user['email']}" }},
                     onComplete: function(response) {{
                         if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
-                            window.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=PRO";
+                            window.top.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=PRO";
                         }}
                     }}
                 }});
             </script>
             '''
-            st.components.v1.html(fedapay_pro_html, height=650)
+            st.components.v1.html(fedapay_pro_html, height=100)
 
     with col2:
         st.subheader("👑 Formule EXPERT")
@@ -269,9 +269,9 @@ with tab2:
             
             fedapay_expert_html = f'''
             <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-            <div style="padding: 10px 0;">
-                <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 16px 28px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                    💳 Procéder au paiement (30 000 XOF)
+            <div style="padding: 15px 0;">
+                <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 18px 24px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    💳 Payer la Formule EXPERT (30 000 XOF)
                 </button>
             </div>
             <script>
@@ -281,13 +281,13 @@ with tab2:
                     customer: {{ email: "{user['email']}" }},
                     onComplete: function(response) {{
                         if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
-                            window.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=EXPERT";
+                            window.top.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=EXPERT";
                         }}
                     }}
                 }});
             </script>
             '''
-            st.components.v1.html(fedapay_expert_html, height=650)
+            st.components.v1.html(fedapay_expert_html, height=100)
 
 # --- TAB 3 : HISTORIQUE & EXPORT ---
 with tab3:
