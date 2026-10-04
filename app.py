@@ -4,13 +4,12 @@ import hashlib
 import json
 import urllib.request
 import pandas as pd
-import phonenumbers
 from datetime import datetime
 
 # Configuration de la page
 st.set_page_config(page_title="AvisExpress 🚀", page_icon="🚀", layout="wide")
 
-# Clés API FedaPay (Sandbox par défaut, à remplacer par sk_live_... pour le mode de production)
+# Clés API FedaPay
 FEDAPAY_SECRET_KEY = "sk_sandbox_..." 
 FEDAPAY_PUBLIC_KEY = "pk_sandbox_FZyFKQIh6gvCBSk6aShpSV7c"
 
@@ -191,7 +190,7 @@ with tab1:
     st.header("📲 Envoyer une demande d'avis")
     
     if plan_actuel == "STANDARD" and total_envois >= LIMITE_CREDITS_STANDARD:
-        st.error("⚠️ Vous avez atteint la limite de 5 SMS gratuits de la Formule STANDARD. Passez à la formule PRO ou EXPERT pour débloquer les SMS illimités.")
+        st.error("⚠️️ Vous avez atteint la limite de 5 SMS gratuits de la Formule STANDARD. Passez à la formule PRO ou EXPERT pour débloquer les SMS illimités.")
     else:
         col_c1, col_c2 = st.columns(2)
         with col_c1:
@@ -233,6 +232,7 @@ with tab2:
         else:
             st.warning("⚠️ Vous n'avez pas encore procédé au paiement pour cette formule.")
             
+            # Guichet FedaPay à hauteur de 650px pour afficher l'ensemble des pays et méthodes de paiement sans défilement
             fedapay_pro_html = f'''
             <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
             <div style="padding: 10px 0;">
@@ -253,8 +253,7 @@ with tab2:
                 }});
             </script>
             '''
-            # Hauteur fixée à 550px pour un affichage parfait du guichet de paiement
-            st.components.v1.html(fedapay_pro_html, height=550)
+            st.components.v1.html(fedapay_pro_html, height=650)
 
     with col2:
         st.subheader("👑 Formule EXPERT")
@@ -288,8 +287,7 @@ with tab2:
                 }});
             </script>
             '''
-            # Hauteur fixée à 550px pour un affichage parfait du guichet de paiement
-            st.components.v1.html(fedapay_expert_html, height=550)
+            st.components.v1.html(fedapay_expert_html, height=650)
 
 # --- TAB 3 : HISTORIQUE & EXPORT ---
 with tab3:
@@ -305,7 +303,7 @@ with tab3:
         csv = df_envois.to_csv(index=False).encode('utf-8')
         st.download_button("📥 Télécharger l'historique (CSV)", data=csv, file_name="historique_envois_avisexpress.csv", mime="text/csv")
 
-# --- BANDEAU DÉFILANT ANIMÉ (TICKER) ---
+# --- BANDEAU DÉFILANT ANIMÉ ---
 st.markdown("""
 <style>
 @keyframes ticker {
