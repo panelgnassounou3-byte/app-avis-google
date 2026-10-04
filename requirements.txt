@@ -1,4 +1,6 @@
 streamlit
 phonenumbers
 babel
+pandasstreamlit
 pandas
+stripe
