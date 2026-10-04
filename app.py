@@ -10,7 +10,7 @@ from datetime import datetime
 st.set_page_config(page_title="AvisExpress 🚀", page_icon="🚀", layout="wide")
 
 # Récupération sécurisée de la clé Stripe depuis st.secrets
-STRIPE_SECRET_KEY = st.secrets["STRIPE_SECRET_KEY"]
+STRIPE_SECRET_KEY = "sk_test_51TnPpiKg0crHycdnhmO81okH7bqjnVRVfDnU6TGvhhQTTt8yPZhDHaVuBw6qLgkEzXUq74UWLKhhwGFApJ55cTP100ys8QQKFh"
 stripe.api_key = STRIPE_SECRET_KEY
 
 LIMITE_CREDITS_STANDARD = 5
