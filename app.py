@@ -187,7 +187,7 @@ tab1, tab2, tab3 = st.tabs(["📲 Envoi de SMS", "💳 Abonnement & Offres", "�
 
 # --- TAB 1 : ENVOI DE SMS ---
 with tab1:
-    st.header("📲 Envoyer une demande d'avis")
+    st.header("📲 Envoyer une demande d'avis (International)")
     
     if plan_actuel == "STANDARD" and total_envois >= LIMITE_CREDITS_STANDARD:
         st.error("⚠️ Vous avez atteint la limite de 5 SMS gratuits de la Formule STANDARD. Passez à la formule PRO ou EXPERT pour débloquer les SMS illimités.")
@@ -195,8 +195,20 @@ with tab1:
         col_c1, col_c2 = st.columns(2)
         with col_c1:
             pays = st.selectbox("Sélectionnez le pays du client :", [
-                "Bénin (+229)", "Togo (+228)", "Côte d'Ivoire (+225)", 
-                "Sénégal (+221)", "Cameroun (+237)", "France (+33)"
+                "🌍 Afrique - Bénin (+229)",
+                "🌍 Afrique - Togo (+228)",
+                "🌍 Afrique - Côte d'Ivoire (+225)",
+                "🌍 Afrique - Sénégal (+221)",
+                "🌍 Afrique - Cameroun (+237)",
+                "🌍 Afrique - Mali (+223)",
+                "🌍 Afrique - Burkina Faso (+226)",
+                "🌍 Afrique - Niger (+227)",
+                "🇪🇺 Europe - France (+33)",
+                "🇪🇺 Europe - Belgique (+32)",
+                "🇪🇺 Europe - Suisse (+41)",
+                "🌎 Amérique - USA / Canada (+1)",
+                "🌏 Asie - Émirats Arabes Unis (+971)",
+                "🌏 Asie - Chine (+86)"
             ])
             indicatif = pays.split("(")[1].replace(")", "")
             num_saisi = st.text_input("Numéro de téléphone du client :", placeholder="ex: 0154341321")
@@ -218,11 +230,13 @@ with tab1:
 # --- TAB 2 : OFFRES & ABONNEMENTS ---
 with tab2:
     st.header("💳 Formules d'abonnement")
+    st.info("💡 **Paiements acceptés :** Mobile Money (MTN, Moov, Wave, Celtiis, Orange) et Cartes bancaires internationales (Visa, Mastercard).")
+    
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader("🌟 Formule PRO")
-        st.write("• SMS illimités")
+        st.write("• SMS illimités (Afrique, Europe, Asie, Amérique)")
         st.write("• Statistiques de performance")
         st.write("• Support prioritaire par e-mail")
         st.write("**Tarif : 15 000 XOF / mois**")
@@ -232,12 +246,11 @@ with tab2:
         else:
             st.warning("⚠️ Vous n'avez pas encore procédé au paiement pour cette formule.")
             
-            # Bouton déclenchant l'ouverture de la page complète
             fedapay_pro_html = f'''
             <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-            <div style="padding: 15px 0;">
-                <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 18px 24px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                    💳 Payer la Formule PRO (15 000 XOF)
+            <div style="padding: 10px 0;">
+                <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 16px 28px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    💳 Procéder au paiement (15 000 XOF)
                 </button>
             </div>
             <script>
@@ -247,17 +260,17 @@ with tab2:
                     customer: {{ email: "{user['email']}" }},
                     onComplete: function(response) {{
                         if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
-                            window.top.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=PRO";
+                            window.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=PRO";
                         }}
                     }}
                 }});
             </script>
             '''
-            st.components.v1.html(fedapay_pro_html, height=100)
+            st.components.v1.html(fedapay_pro_html, height=250)
 
     with col2:
         st.subheader("👑 Formule EXPERT")
-        st.write("• SMS illimités")
+        st.write("• SMS illimités (Afrique, Europe, Asie, Amérique)")
         st.write("• Multi-boutiques & Multi-utilisateurs")
         st.write("• Support VIP 24/7 par téléphone")
         st.write("**Tarif : 30 000 XOF / mois**")
@@ -269,9 +282,9 @@ with tab2:
             
             fedapay_expert_html = f'''
             <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-            <div style="padding: 15px 0;">
-                <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 18px 24px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                    💳 Payer la Formule EXPERT (30 000 XOF)
+            <div style="padding: 10px 0;">
+                <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 16px 28px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    💳 Procéder au paiement (30 000 XOF)
                 </button>
             </div>
             <script>
@@ -281,13 +294,13 @@ with tab2:
                     customer: {{ email: "{user['email']}" }},
                     onComplete: function(response) {{
                         if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
-                            window.top.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=EXPERT";
+                            window.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=EXPERT";
                         }}
                     }}
                 }});
             </script>
             '''
-            st.components.v1.html(fedapay_expert_html, height=100)
+            st.components.v1.html(fedapay_expert_html, height=250)
 
 # --- TAB 3 : HISTORIQUE & EXPORT ---
 with tab3:
