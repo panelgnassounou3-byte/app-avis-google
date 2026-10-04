@@ -2,11 +2,16 @@ import streamlit as st
 import sqlite3
 import hashlib
 import json
+import stripe
 import pandas as pd
 from datetime import datetime
 
 # Configuration de la page
 st.set_page_config(page_title="AvisExpress 🚀", page_icon="🚀", layout="wide")
+
+# Récupération sécurisée de la clé Stripe depuis st.secrets
+STRIPE_SECRET_KEY = st.secrets["STRIPE_SECRET_KEY"]
+stripe.api_key = STRIPE_SECRET_KEY
 
 LIMITE_CREDITS_STANDARD = 5
 
@@ -92,12 +97,12 @@ def obtenir_statistiques(user_id):
     conn.close()
     return total_envois, plan
 
-# --- TRAITEMENT AUTOMATIQUE RETOUR DE PAIEMENT ---
+# --- TRAITEMENT DU RETOUR DE PAIEMENT STRIPE ---
 query_params = st.query_params
 if "payment_success" in query_params and st.session_state.user:
     target_plan = query_params.get("plan", "PRO")
     mettre_a_jour_plan(st.session_state.user["id"], target_plan)
-    st.success(f"🎉 Paiement international confirmé ! Votre compte est passé à la formule {target_plan}.")
+    st.success(f"🎉 Paiement confirmé ! Votre abonnement est maintenant actif : Formule {target_plan}.")
     st.query_params.clear()
     st.rerun()
 
@@ -162,7 +167,7 @@ tab1, tab2, tab3 = st.tabs(["📲 Envoi de SMS International", "💳 Abonnement 
 
 # --- TAB 1 : ENVOI SMS ---
 with tab1:
-    st.header("📲 Envoyer une demande d'avis (Afrique, Europe, Asie, Amérique)")
+    st.header("📲 Envoyer une demande d'avis (International)")
     
     if plan_actuel == "STANDARD" and total_envois >= LIMITE_CREDITS_STANDARD:
         st.error("⚠️ Limite atteinte pour la Formule STANDARD. Passez à la formule PRO ou EXPERT pour débloquer l'envoi illimité.")
@@ -204,58 +209,82 @@ with tab1:
                 st.success(f"✅ Demande d'avis envoyée au {num_complet} !")
                 st.rerun()
 
-# --- TAB 2 : ABONNEMENT INTERNATIONAL (STRIPE) ---
+# --- TAB 2 : ABONNEMENT INTERNATIONAL (STRIPE CHECKOUT) ---
 with tab2:
     st.header("💳 Formules d'abonnement internationales")
-    st.info("🌐 **Paiements acceptés à l'échelle mondiale :** Cartes bancaires (Visa, Mastercard, Amex), Apple Pay, Google Pay et méthodes locales internationales.")
+    st.info("🔒 **Paiement sécurisé par Stripe :** Acceptation des cartes Visa, Mastercard, American Express, Apple Pay et Google Pay.")
     
     col1, col2 = st.columns(2)
+    
+    app_url = "https://app-avis-app-wv9a2h9feuswngyqubhxk8.streamlit.app"
     
     with col1:
         st.subheader("🌟 Formule PRO")
         st.write("• SMS illimités (Afrique, Europe, Asie, Amérique)")
         st.write("• Statistiques de performance")
         st.write("• Support prioritaire 24/7")
-        st.write("**Tarif : 15 000 XOF (~23 EUR / 25 USD) / mois**")
+        st.write("**Tarif : 25 USD / mois (~15 000 XOF)**")
         
         if plan_actuel == "PRO":
             st.success("✅ Formule PRO actuellement active.")
         else:
-            st.warning("⚠️ Formule non activée.")
-            
-            stripe_pro_html = f'''
-            <div style="padding: 10px 0; text-align: center;">
-                <a href="https://checkout.stripe.com" target="_blank" style="text-decoration: none;">
-                    <button style="background-color: #635BFF; color: white; border: none; padding: 18px 24px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                        💳 Payer par Carte / Apple Pay (15 000 XOF)
-                    </button>
-                </a>
-            </div>
-            '''
-            st.components.v1.html(stripe_pro_html, height=250)
+            if st.button("💳 Payer par Carte (Formule PRO)", key="btn_stripe_pro", type="primary"):
+                try:
+                    session = stripe.checkout.Session.create(
+                        payment_method_types=['card'],
+                        customer_email=user['email'],
+                        line_items=[{
+                            'price_data': {
+                                'currency': 'usd',
+                                'product_data': {
+                                    'name': 'Abonnement PRO - AvisExpress',
+                                    'description': 'Accès illimité aux envois de SMS d\'avis Google',
+                                },
+                                'unit_amount': 2500,
+                            },
+                            'quantity': 1,
+                        }],
+                        mode='payment',
+                        success_url=f"{app_url}/?payment_success=true&plan=PRO",
+                        cancel_url=f"{app_url}/",
+                    )
+                    st.link_button("👉 Cliquez ici pour saisir votre carte bancaire 🔒", session.url, type="primary")
+                except Exception as e:
+                    st.error(f"Erreur lors de la création de la session de paiement : {e}")
 
     with col2:
         st.subheader("👑 Formule EXPERT")
         st.write("• SMS illimités (Couverture Mondiale)")
         st.write("• Multi-boutiques & Multi-utilisateurs")
         st.write("• Manager de compte dédié")
-        st.write("**Tarif : 30 000 XOF (~46 EUR / 50 USD) / mois**")
+        st.write("**Tarif : 50 USD / mois (~30 000 XOF)**")
         
         if plan_actuel == "EXPERT":
             st.success("✅ Formule EXPERT actuellement active.")
         else:
-            st.warning("⚠️ Formule non activée.")
-            
-            stripe_expert_html = f'''
-            <div style="padding: 10px 0; text-align: center;">
-                <a href="https://checkout.stripe.com" target="_blank" style="text-decoration: none;">
-                    <button style="background-color: #28a745; color: white; border: none; padding: 18px 24px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                        💳 Payer par Carte / Apple Pay (30 000 XOF)
-                    </button>
-                </a>
-            </div>
-            '''
-            st.components.v1.html(stripe_expert_html, height=250)
+            if st.button("💳 Payer par Carte (Formule EXPERT)", key="btn_stripe_expert", type="primary"):
+                try:
+                    session = stripe.checkout.Session.create(
+                        payment_method_types=['card'],
+                        customer_email=user['email'],
+                        line_items=[{
+                            'price_data': {
+                                'currency': 'usd',
+                                'product_data': {
+                                    'name': 'Abonnement EXPERT - AvisExpress',
+                                    'description': 'Accès complet multi-boutiques et support VIP',
+                                },
+                                'unit_amount': 5000,
+                            },
+                            'quantity': 1,
+                        }],
+                        mode='payment',
+                        success_url=f"{app_url}/?payment_success=true&plan=EXPERT",
+                        cancel_url=f"{app_url}/",
+                    )
+                    st.link_button("👉 Cliquez ici pour saisir votre carte bancaire 🔒", session.url, type="primary")
+                except Exception as e:
+                    st.error(f"Erreur lors de la création de la session de paiement : {e}")
 
 # --- TAB 3 : HISTORIQUE ---
 with tab3:
