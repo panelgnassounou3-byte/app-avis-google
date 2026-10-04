@@ -231,7 +231,6 @@ with tab2:
             if st.button("💳 Payer par Carte (Formule PRO)", key="btn_stripe_pro", type="primary"):
                 try:
                     session = stripe.checkout.Session.create(
-                        payment_method_types=['card'],
                         customer_email=user['email'],
                         line_items=[{
                             'price_data': {
@@ -265,7 +264,6 @@ with tab2:
             if st.button("💳 Payer par Carte (Formule EXPERT)", key="btn_stripe_expert", type="primary"):
                 try:
                     session = stripe.checkout.Session.create(
-                        payment_method_types=['card'],
                         customer_email=user['email'],
                         line_items=[{
                             'price_data': {
