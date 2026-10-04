@@ -232,11 +232,15 @@ with tab2:
             st.success("✅ Formule PRO actuellement active sur votre compte.")
         else:
             st.warning("⚠️ Vous n'avez pas encore procédé au paiement pour cette formule.")
+            
+            # Bouton & Widget FedaPay avec taille agrandie et lisibilité maximale
             fedapay_pro_html = f'''
             <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-            <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                💳 Procéder au paiement (15 000 XOF)
-            </button>
+            <div style="padding: 10px 0;">
+                <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 16px 28px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    💳 Procéder au paiement (15 000 XOF)
+                </button>
+            </div>
             <script>
                 let widgetPro = FedaPay.init('#pay-btn-pro', {{
                     public_key: '{FEDAPAY_PUBLIC_KEY}',
@@ -250,7 +254,44 @@ with tab2:
                 }});
             </script>
             '''
-            st.components.v1.html(fedapay_pro_html, height=80)
+            # Hauteur augmentée à 250px pour afficher entièrement le guichet FedaPay sans rognage
+            st.components.v1.html(fedapay_pro_html, height=250)
+
+    with col2:
+        st.subheader("👑 Formule EXPERT")
+        st.write("• SMS illimités")
+        st.write("• Multi-boutiques & Multi-utilisateurs")
+        st.write("• Support VIP 24/7 par téléphone")
+        st.write("**Tarif : 30 000 XOF / mois**")
+        
+        if plan_actuel == "EXPERT":
+            st.success("✅ Formule EXPERT actuellement active sur votre compte.")
+        else:
+            st.warning("⚠️ Vous n'avez pas encore procédé au paiement pour cette formule.")
+            
+            # Bouton & Widget FedaPay avec taille agrandie et lisibilité maximale
+            fedapay_expert_html = f'''
+            <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+            <div style="padding: 10px 0;">
+                <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 16px 28px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    💳 Procéder au paiement (30 000 XOF)
+                </button>
+            </div>
+            <script>
+                let widgetExpert = FedaPay.init('#pay-btn-expert', {{
+                    public_key: '{FEDAPAY_PUBLIC_KEY}',
+                    transaction: {{ amount: 30000, description: "Abonnement EXPERT AvisExpress" }},
+                    customer: {{ email: "{user['email']}" }},
+                    onComplete: function(response) {{
+                        if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
+                            window.location.href = window.location.origin + "?id=" + response.transaction.id + "&plan=EXPERT";
+                        }}
+                    }}
+                }});
+            </script>
+            '''
+            # Hauteur augmentée à 250px pour afficher entièrement le guichet FedaPay sans rognage
+            st.components.v1.html(fedapay_expert_html, height=250)
 
     with col2:
         st.subheader("👑 Formule EXPERT")
