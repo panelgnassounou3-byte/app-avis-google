@@ -173,7 +173,7 @@ def generer_repartition_50_50(email, montant_total):
     c.execute('''
         INSERT INTO transactions (email, montant_total, part_psn, part_robux, codes_psn, codes_robux, dest_psn, dest_robux, date_transaction)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (email, montant_total, part_psn, part_robux, " | ".join(cartes_psn), " | ".join(cartes_robux), DESTINATION_PLAYSTATION, DESTINATION_ROBUX, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    ''', (email, montant_total, part_psn, part_robux, " | ".join(cartes_psn), " | ".join(cartes_robux), DESTINATION_PLAYSTATION, DESTINATION_ROBUX, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     conn.commit()
     conn.close()
     
