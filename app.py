@@ -17,14 +17,14 @@ st.set_page_config(
 # ==============================================================================
 # ⚙️ --- INFORMATIONS ADMINISTRATEUR & DESTINATIONS DES FONDS ---
 # ==============================================================================
-PASSWORD_ADMIN = "ArmiAne_84"                           # Mot de passe espace admin
-ADMIN_EMAIL = "panelgnassounou3@gmail.com"                 # Votre e-mail pour recevoir les notifications
+PASSWORD_ADMIN = "admin123"                           # Mot de passe espace admin
+ADMIN_EMAIL = "votre.email@gmail.com"                 # Votre e-mail pour recevoir les notifications
 
 # Vos identifiants de comptes pour la réception des parts 50/50
-DESTINATION_PLAYSTATION = "panelgnassounou3+jeux@gmail.com"
-DESTINATION_ROBUX = "nelma4231"
+DESTINATION_PLAYSTATION = "Mon_ID_PSN / psn-admin@gmail.com"
+DESTINATION_ROBUX = "Mon_Pseudo_Roblox / roblox-admin@gmail.com"
 
-# Clé Publique FedaPay (Passerelle Universelle : Cartes Visa/Mastercard & Mobile Money)
+# Clé Publique FedaPay (Passerelle Universelle)
 FEDAPAY_PUBLIC_KEY = "pk_sandbox_FZyFKQIh6gvCBSk6aShpSV7c"
 # ==============================================================================
 
@@ -210,11 +210,11 @@ if menu == "📱 Envoi d'Avis SMS":
             st.error("Veuillez remplir tous les champs.")
 
 # ------------------------------------------------------------------------------
-# 2. ABONNEMENTS ET GUICHET UNIVERSEL (GRANDE FENÊTRE SANS DÉFILEMENT)
+# 2. ABONNEMENTS ET GUICHET UNIVERSEL PLEINE PAGE
 # ------------------------------------------------------------------------------
 elif menu == "💳 Abonnements & Paiement Universel":
     st.title("💳 Guichet de Paiement International & Multi-Devises")
-    st.write("Sélectionnez votre formule. Le client peut utiliser la méthode de son choix (Carte Bancaire Visa/Mastercard, Mobile Money, PayPal, etc.).")
+    st.write("Sélectionnez votre formule pour ouvrir le guichet de paiement complet.")
 
     col1, col2, col3 = st.columns(3)
 
@@ -236,19 +236,18 @@ elif menu == "💳 Abonnements & Paiement Universel":
         
         fedapay_pro_html = f'''
         <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-        <div style="padding: 10px 0;">
-            <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
-                💳 Choisir mon moyen de paiement (25$)
-            </button>
-        </div>
+        <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
+            💳 Choisir mon moyen de paiement (25$)
+        </button>
         <script>
             let widgetPro = FedaPay.init('#pay-btn-pro', {{
                 public_key: '{FEDAPAY_PUBLIC_KEY}',
-                transaction: {{ amount: 15000, description: "Abonnement PRO AvisExpress" }}
+                transaction: {{ amount: 15000, description: "Abonnement PRO AvisExpress" }},
+                container: 'body'
             }});
         </script>
         '''
-        st.components.v1.html(fedapay_pro_html, height=550)
+        st.components.v1.html(fedapay_pro_html, height=80)
 
     with col3:
         st.subheader("👑 Formule EXPERT")
@@ -260,19 +259,18 @@ elif menu == "💳 Abonnements & Paiement Universel":
         
         fedapay_expert_html = f'''
         <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-        <div style="padding: 10px 0;">
-            <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
-                💳 Choisir mon moyen de paiement (50$)
-            </button>
-        </div>
+        <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
+            💳 Choisir mon moyen de paiement (50$)
+        </button>
         <script>
             let widgetExpert = FedaPay.init('#pay-btn-expert', {{
                 public_key: '{FEDAPAY_PUBLIC_KEY}',
-                transaction: {{ amount: 30000, description: "Abonnement EXPERT AvisExpress" }}
+                transaction: {{ amount: 30000, description: "Abonnement EXPERT AvisExpress" }},
+                container: 'body'
             }});
         </script>
         '''
-        st.components.v1.html(fedapay_expert_html, height=550)
+        st.components.v1.html(fedapay_expert_html, height=80)
 
 # ------------------------------------------------------------------------------
 # 3. REPARTITION 50/50 RECOMPENSES
