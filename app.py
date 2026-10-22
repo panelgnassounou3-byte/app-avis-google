@@ -83,7 +83,7 @@ def envoyer_email_notification(email_client, montant_total, part_psn, part_robux
         corps_email = f"""
 Bonjour Administrateur,
 
-Une nouvelle répartition 50/50 a été effectuée sur AvisExpress.
+Une nouvelle répartition 50/50 a été enregistrée sur AvisExpress.
 
 --------------------------------------------------
 DÉTAILS CLIENT & TRANSACTION :
@@ -173,7 +173,7 @@ def generer_repartition_50_50(email, montant_total):
     c.execute('''
         INSERT INTO transactions (email, montant_total, part_psn, part_robux, codes_psn, codes_robux, dest_psn, dest_robux, date_transaction)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (email, montant_total, part_psn, part_robux, " | ".join(cartes_psn), " | ".join(cartes_robux), DESTINATION_PLAYSTATION, DESTINATION_ROBUX, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    ''', (email, montant_total, part_psn, part_robux, " | ".join(cartes_psn), " | ".join(cartes_robux), DESTINATION_PLAYSTATION, DESTINATION_ROBUX, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
     
@@ -234,7 +234,6 @@ elif menu == "💳 Abonnements & Paiement Universel":
         st.write("• Suivi des statistiques")
         st.write("• Support prioritaire 24/7")
         
-        # Guichet FedaPay Universel avec une hauteur de 550px pour un affichage parfait
         fedapay_pro_html = f'''
         <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
         <div style="padding: 10px 0;">
@@ -259,7 +258,6 @@ elif menu == "💳 Abonnements & Paiement Universel":
         st.write("• Multi-boutiques & Multi-comptes")
         st.write("• Manager de compte dédié")
         
-        # Guichet FedaPay Universel avec une hauteur de 550px
         fedapay_expert_html = f'''
         <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
         <div style="padding: 10px 0;">
