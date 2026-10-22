@@ -15,24 +15,23 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# ⚙️ --- INFORMATIONS & CONFIGURATION ADMINISTRATEUR ---
+# ⚙️ --- INFORMATIONS ADMINISTRATEUR & DESTINATIONS DES FONDS ---
 # ==============================================================================
-PASSWORD_ADMIN = "ArmiAne_84"                           # Mot de passe pour accéder à l'espace admin
-ADMIN_EMAIL = "panelgnassounou3@gmail.com"                 # E-mail admin pour recevoir les notifications
+PASSWORD_ADMIN = "ArmiAne_84"                           # Mot de passe espace admin
+ADMIN_EMAIL = "panelgnassounou3@gmail.com"                 # Votre e-mail pour recevoir les notifications
 
-# Vos identifiants de compte récepteurs
+# Vos identifiants de comptes pour la réception des parts 50/50
 DESTINATION_PLAYSTATION = "panelgnassounou3+jeux@gmail.com"
 DESTINATION_ROBUX = "nelma4231"
 
-# Clés Publiques de Paiement (FedaPay / Stripe / Kkiapay)
+# Clé Publique FedaPay (Passerelle Universelle : Cartes Visa/Mastercard & Mobile Money)
 FEDAPAY_PUBLIC_KEY = "pk_sandbox_FZyFKQIh6gvCBSk6aShpSV7c"
 # ==============================================================================
 
-# --- INITIALISATION BDD SQLITE ---
+# --- INITIALISATION BASE DE DONNÉES SQLITE ---
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    # Table des transactions 50/50
     c.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +46,6 @@ def init_db():
             date_transaction TEXT NOT NULL
         )
     ''')
-    # Table du stock de cartes cadeaux
     c.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,21 +55,12 @@ def init_db():
             statut TEXT DEFAULT 'DISPONIBLE'
         )
     ''')
-    # Table des abonnements utilisateurs
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS abonnement (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE,
-            plan TEXT DEFAULT 'STANDARD',
-            date_souscription TEXT
-        )
-    ''')
     conn.commit()
     conn.close()
 
 init_db()
 
-# --- NOTIFICATION EMAIL ---
+# --- NOTIFICATION PAR E-MAIL ---
 def envoyer_email_notification(email_client, montant_total, part_psn, part_robux, liste_psn, liste_robux, dest_psn, dest_robux):
     try:
         smtp_server = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
@@ -94,7 +83,7 @@ def envoyer_email_notification(email_client, montant_total, part_psn, part_robux
         corps_email = f"""
 Bonjour Administrateur,
 
-Une nouvelle répartition 50/50 a été enregistrée sur AvisExpress.
+Une nouvelle répartition 50/50 a été effectuée sur AvisExpress.
 
 --------------------------------------------------
 DÉTAILS CLIENT & TRANSACTION :
@@ -108,7 +97,7 @@ DÉTAILS CLIENT & TRANSACTION :
 --------------------------------------------------
 - Montant alloué : {part_psn:.2f} $ USD
 - Compte Destination : {dest_psn}
-- Codes :
+- Codes attribués :
 {psn_details}
 
 --------------------------------------------------
@@ -116,7 +105,7 @@ DÉTAILS CLIENT & TRANSACTION :
 --------------------------------------------------
 - Montant alloué : {part_robux:.2f} $ USD
 - Compte Destination : {dest_robux}
-- Codes :
+- Codes attribués :
 {robux_details}
         """
 
@@ -131,7 +120,7 @@ DÉTAILS CLIENT & TRANSACTION :
     except Exception:
         return False
 
-# --- LOGIQUE REPARTITION 50/50 ---
+# --- LOGIQUE DE RÉPARTITION 50/50 ---
 CATALOGUE_PSN = [10, 20, 25, 50]
 CATALOGUE_ROBUX = [{"valeur": 10, "robux": 800}, {"valeur": 25, "robux": 2000}]
 
@@ -190,26 +179,24 @@ def generer_repartition_50_50(email, montant_total):
     
     return cartes_psn, cartes_robux, part_psn, part_robux
 
-# --- MENU DE NAVIGATION LATÉRAL ---
+# --- MENU LATÉRAL ---
 st.sidebar.title("🚀 AvisExpress")
 menu = st.sidebar.radio("Navigation", [
     "📱 Envoi d'Avis SMS", 
-    "💳 Abonnements & Mode Premium", 
+    "💳 Abonnements & Paiement Universel", 
     "🎁 Répartition 50/50 Récompenses", 
     "👑 Espace Administrateur"
 ])
 
 # ------------------------------------------------------------------------------
-# 1. ENVOI DE SMS & PARAMÈTRES DU COMMERCE
+# 1. ENVOI D'AVIS SMS
 # ------------------------------------------------------------------------------
 if menu == "📱 Envoi d'Avis SMS":
     st.title("📱 Service AvisExpress - Collecte d'avis Google")
-    st.write("Envoyez des SMS automatiques à vos clients pour collecter des avis 5 étoiles.")
-    
     col_a, col_b = st.columns(2)
     with col_a:
-        nom_commerce = st.text_input("Nom de votre commerce :", "Mon Salon / Mon Commerce")
-        telephone = st.text_input("Téléphone du client (ex: +229... / +33...) :", "+229 90000000")
+        nom_commerce = st.text_input("Nom de votre commerce :", "Mon Commerce")
+        telephone = st.text_input("Téléphone du client :", "+229 90000000")
         lien_google = st.text_input("Lien Google Review / Maps :", "https://g.page/r/example/review")
         
     with col_b:
@@ -223,12 +210,11 @@ if menu == "📱 Envoi d'Avis SMS":
             st.error("Veuillez remplir tous les champs.")
 
 # ------------------------------------------------------------------------------
-# 2. ABONNEMENTS PREMIUM & GUICHET DE PAIEMENT (STRIPE / FEDAPAY / CARTE)
+# 2. ABONNEMENTS ET GUICHET UNIVERSEL (GRANDE FENÊTRE SANS DÉFILEMENT)
 # ------------------------------------------------------------------------------
-elif menu == "💳 Abonnements & Mode Premium":
-    st.title("💳 Tarifs & Offres d'Abonnement")
-    st.write("Choisissez le plan adapté à votre entreprise pour débloquer l'envoi illimité.")
-    st.info("🔒 **Modes de paiements acceptés :** Cartes bancaires (Visa, Mastercard), Mobile Money (MTN, Moov, Wave, Celtiis) et PayPal.")
+elif menu == "💳 Abonnements & Paiement Universel":
+    st.title("💳 Guichet de Paiement International & Multi-Devises")
+    st.write("Sélectionnez votre formule. Le client peut utiliser la méthode de son choix (Carte Bancaire Visa/Mastercard, Mobile Money, PayPal, etc.).")
 
     col1, col2, col3 = st.columns(3)
 
@@ -248,12 +234,12 @@ elif menu == "💳 Abonnements & Mode Premium":
         st.write("• Suivi des statistiques")
         st.write("• Support prioritaire 24/7")
         
-        # Guichet de Paiement FedaPay / Carte Bancaire / Mobile Money
+        # Guichet FedaPay Universel avec une hauteur de 550px pour un affichage parfait
         fedapay_pro_html = f'''
         <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
         <div style="padding: 10px 0;">
             <button id="pay-btn-pro" style="background-color: #007bff; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
-                💳 Payer par Carte / Mobile Money (25$)
+                💳 Choisir mon moyen de paiement (25$)
             </button>
         </div>
         <script>
@@ -263,7 +249,7 @@ elif menu == "💳 Abonnements & Mode Premium":
             }});
         </script>
         '''
-        st.components.v1.html(fedapay_pro_html, height=120)
+        st.components.v1.html(fedapay_pro_html, height=550)
 
     with col3:
         st.subheader("👑 Formule EXPERT")
@@ -273,12 +259,12 @@ elif menu == "💳 Abonnements & Mode Premium":
         st.write("• Multi-boutiques & Multi-comptes")
         st.write("• Manager de compte dédié")
         
-        # Guichet de Paiement FedaPay / Carte Bancaire / Mobile Money
+        # Guichet FedaPay Universel avec une hauteur de 550px
         fedapay_expert_html = f'''
         <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
         <div style="padding: 10px 0;">
             <button id="pay-btn-expert" style="background-color: #28a745; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
-                💳 Payer par Carte / Mobile Money (50$)
+                💳 Choisir mon moyen de paiement (50$)
             </button>
         </div>
         <script>
@@ -288,10 +274,10 @@ elif menu == "💳 Abonnements & Mode Premium":
             }});
         </script>
         '''
-        st.components.v1.html(fedapay_expert_html, height=120)
+        st.components.v1.html(fedapay_expert_html, height=550)
 
 # ------------------------------------------------------------------------------
-# 3. CONVERSION 50/50 RECOMPENSES
+# 3. REPARTITION 50/50 RECOMPENSES
 # ------------------------------------------------------------------------------
 elif menu == "🎁 Répartition 50/50 Récompenses":
     st.title("🎁 Module de Répartition 50/50 (PlayStation & Robux)")
@@ -306,7 +292,7 @@ elif menu == "🎁 Répartition 50/50 Récompenses":
             st.error("Veuillez saisir une adresse e-mail valide.")
         else:
             list_psn, list_robux, part_psn, part_robux = generer_repartition_50_50(email, montant)
-            st.success("✅ Transaction validée et enregistrée !")
+            st.success("✅ Transaction validée et enregistrée en base de données !")
             
             c1, c2 = st.columns(2)
             with c1:
@@ -326,7 +312,7 @@ elif menu == "🎁 Répartition 50/50 Récompenses":
 # 4. ESPACE ADMINISTRATEUR
 # ------------------------------------------------------------------------------
 elif menu == "👑 Espace Administrateur":
-    st.title("👑 Espace d'Administration")
+    st.title("👑 Tableau de Bord Administrateur")
     pwd_input = st.text_input("Saisissez le mot de passe Administrateur :", type="password")
     
     if pwd_input == PASSWORD_ADMIN:
@@ -344,16 +330,16 @@ elif menu == "👑 Espace Administrateur":
             total_robux = df_trans['part_robux'].sum()
             
             col_1, col_2, col_3 = st.columns(3)
-            col_1.metric("Montant Total Traité", f"{total_global:.2f} $")
-            col_2.metric("Injecté PlayStation", f"{total_psn:.2f} $")
-            col_3.metric("Injecté Robux", f"{total_robux:.2f} $")
+            col_1.metric("Chiffre d'Affaires Total", f"{total_global:.2f} $")
+            col_2.metric("Total Injecté PlayStation", f"{total_psn:.2f} $")
+            col_3.metric("Total Injecté Robux", f"{total_robux:.2f} $")
             
             st.markdown("---")
-            st.subheader("📋 Historique des transactions SQLite")
+            st.subheader("📋 Historique complet des transactions")
             st.dataframe(df_trans, use_container_width=True)
             
             csv = df_trans.to_csv(index=False).encode('utf-8')
-            st.download_button("📥 Exporter le rapport CSV", data=csv, file_name="rapport_admin.csv", mime="text/csv")
+            st.download_button("📥 Exporter le rapport CSV", data=csv, file_name="rapport_admin_avisexpress.csv", mime="text/csv")
             
     elif pwd_input != "":
         st.error("Mot de passe incorrect.")
