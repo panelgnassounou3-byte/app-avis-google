@@ -24,10 +24,8 @@ ADMIN_EMAIL = "votre.email@gmail.com"                 # Votre e-mail pour recevo
 DESTINATION_PLAYSTATION = "Mon_ID_PSN / psn-admin@gmail.com"
 DESTINATION_ROBUX = "Mon_Pseudo_Roblox / roblox-admin@gmail.com"
 
-# Liens directs vers votre page de paiement hébergée (Hosted Checkout)
-# (Remplacez par votre lien réel Stripe Checkout ou FedaPay)
-URL_PAIEMENT_25 = "https://checkout.fedapay.com/votre-lien-25usd"
-URL_PAIEMENT_50 = "https://checkout.fedapay.com/votre-lien-50usd"
+# Clé Publique FedaPay
+FEDAPAY_PUBLIC_KEY = "pk_sandbox_FZyFKQIh6gvCBSk6aShpSV7c"
 # ==============================================================================
 
 # --- INITIALISATION BASE DE DONNÉES SQLITE ---
@@ -148,7 +146,7 @@ def obtenir_code(type_carte, valeur):
         prefix = "PSN" if type_carte == "PSN" else "RBX"
         return f"{prefix}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}"
 
-def traiter_transaction_50_50(email, montant_total, moyen_pay="Carte / PayPal / Mobile Money"):
+def traiter_transaction_50_50(email, montant_total, moyen_pay="Paiement Sécurisé"):
     part_psn = montant_total * 0.50
     part_robux = montant_total * 0.50
     
@@ -191,8 +189,8 @@ if "status" in query_params and query_params["status"] == "approved":
     email_client = query_params.get("email", "client@exemple.com")
     montant_paye = float(query_params.get("amount", 25.0))
     
-    list_psn, list_robux, part_psn, part_robux = traiter_transaction_50_50(email_client, montant_paye, "Page Sécurisée Externe")
-    envoyer_email_notification(email_client, montant_paye, part_psn, part_robux, "Page Sécurisée Externe", list_psn, list_robux, DESTINATION_PLAYSTATION, DESTINATION_ROBUX)
+    list_psn, list_robux, part_psn, part_robux = traiter_transaction_50_50(email_client, montant_paye, "FedaPay / Carte / Mobile")
+    envoyer_email_notification(email_client, montant_paye, part_psn, part_robux, "FedaPay", list_psn, list_robux, DESTINATION_PLAYSTATION, DESTINATION_ROBUX)
     
     st.success("✅ Transaction effectuée avec succès ! Merci pour votre achat.")
     st.query_params.clear()
@@ -206,16 +204,16 @@ menu = st.sidebar.radio("Navigation", [
 ])
 
 # ------------------------------------------------------------------------------
-# 1. GUICHET DE PAIEMENT CLIENT (REDIRECTION EXTERNE STYLE NETFLIX)
+# 1. GUICHET DE PAIEMENT CLIENT
 # ------------------------------------------------------------------------------
 if menu == "💳 Guichet de Paiement Client":
-    st.title("💳 Guichet d'Abonnement et Paiement Sécurisé")
-    st.write("Sélectionnez votre formule et cliquez pour être redirigé vers la page de paiement sécurisée aux normes PCI-DSS (Visa, Mastercard, PayPal, Mobile Money).")
+    st.title("💳 Guichet d'Abonnement & Paiement Sécurisé")
+    st.write("Entrez votre e-mail puis cliquez sur le bouton pour choisir votre moyen de paiement (Visa, Mastercard, Mobile Money, etc.).")
 
     email_client = st.text_input("Adresse e-mail de facturation *", placeholder="votre.email@exemple.com")
     
     if not email_client or "@" not in email_client:
-        st.warning("⚠️ Veuillez renseigner une adresse e-mail valide ci-dessus pour activer le bouton de paiement.")
+        st.warning("⚠️ Veuillez renseigner une adresse e-mail valide ci-dessus pour débloquer les boutons de paiement.")
     else:
         st.markdown("---")
         col1, col2 = st.columns(2)
@@ -224,15 +222,51 @@ if menu == "💳 Guichet de Paiement Client":
             st.subheader("🌟 Formule PRO (25 $ USD)")
             st.write("• SMS illimités")
             st.write("• Suivi des performances")
-            target_url_25 = f"{URL_PAIEMENT_25}?email={email_client}"
-            st.link_button("🔒 Payer 25,00 $ USD (Page Sécurisée)", target_url_25, type="primary", use_container_width=True)
+            
+            html_pro = f'''
+            <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+            <button id="btn-pro" style="background-color: #007bff; color: white; border: none; padding: 15px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
+                🔒 Payer 25,00 $ USD
+            </button>
+            <script>
+                let widgetPro = FedaPay.init('#btn-pro', {{
+                    public_key: '{FEDAPAY_PUBLIC_KEY}',
+                    transaction: {{ amount: 15000, description: "Abonnement PRO AvisExpress" }},
+                    customer: {{ email: "{email_client}" }},
+                    onComplete: function(response) {{
+                        if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
+                            window.top.location.href = window.location.origin + "?status=approved&email={email_client}&amount=25";
+                        }}
+                    }}
+                }});
+            </script>
+            '''
+            st.components.v1.html(html_pro, height=90)
 
         with col2:
             st.subheader("👑 Formule EXPERT (50 $ USD)")
             st.write("• SMS illimités (Monde)")
             st.write("• Multi-boutiques & Support VIP")
-            target_url_50 = f"{URL_PAIEMENT_50}?email={email_client}"
-            st.link_button("🔒 Payer 50,00 $ USD (Page Sécurisée)", target_url_50, type="primary", use_container_width=True)
+            
+            html_expert = f'''
+            <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+            <button id="btn-expert" style="background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
+                🔒 Payer 50,00 $ USD
+            </button>
+            <script>
+                let widgetExpert = FedaPay.init('#btn-expert', {{
+                    public_key: '{FEDAPAY_PUBLIC_KEY}',
+                    transaction: {{ amount: 30000, description: "Abonnement EXPERT AvisExpress" }},
+                    customer: {{ email: "{email_client}" }},
+                    onComplete: function(response) {{
+                        if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
+                            window.top.location.href = window.location.origin + "?status=approved&email={email_client}&amount=50";
+                        }}
+                    }}
+                }});
+            </script>
+            '''
+            st.components.v1.html(html_expert, height=90)
 
 # ------------------------------------------------------------------------------
 # 2. ENVOI DE SMS AVIS GOOGLE
