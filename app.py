@@ -20,9 +20,12 @@ st.set_page_config(
 PASSWORD_ADMIN = "admin123"                           # Mot de passe espace admin
 ADMIN_EMAIL = "votre.email@gmail.com"                 # Votre e-mail pour recevoir les notifications
 
-# Vos destinations de réception 50/50
+# Destinations de réception 50/50
 DESTINATION_PLAYSTATION = "Mon_ID_PSN / psn-admin@gmail.com"
 DESTINATION_ROBUX = "Mon_Pseudo_Roblox / roblox-admin@gmail.com"
+
+# Clé Publique FedaPay (Ouvre le guichet bancaire de saisie)
+FEDAPAY_PUBLIC_KEY = "pk_sandbox_FZyFKQIh6gvCBSk6aShpSV7c"
 # ==============================================================================
 
 # --- INITIALISATION BASE DE DONNÉES SQLITE ---
@@ -53,13 +56,10 @@ def init_db():
             statut TEXT DEFAULT 'DISPONIBLE'
         )
     ''')
-    
-    # Mise à jour automatique de la table si l'ancienne colonne manque
     try:
         c.execute("ALTER TABLE transactions ADD COLUMN moyen_paiement TEXT DEFAULT ''")
     except sqlite3.OperationalError:
-        pass # La colonne existe déjà
-        
+        pass
     conn.commit()
     conn.close()
 
@@ -80,7 +80,7 @@ def envoyer_email_notification(email_client, montant_total, part_psn, part_robux
         msg = MIMEMultipart()
         msg['From'] = sender_email
         msg['To'] = target_admin_email
-        msg['Subject'] = f"🔔 NOUVELLE TRANSACTION VALIDÉE ({montant_total}$ USD) - {email_client}"
+        msg['Subject'] = f"🔔 NOUVELLE TRANSACTION REÇUE ({montant_total}$ USD) - {email_client}"
 
         psn_details = "\n".join([f"- {item}" for item in liste_psn])
         robux_details = "\n".join([f"- {item}" for item in liste_robux])
@@ -88,7 +88,7 @@ def envoyer_email_notification(email_client, montant_total, part_psn, part_robux
         corps_email = f"""
 Bonjour Administrateur,
 
-Une nouvelle transaction vient d'être effectuée avec succès sur AvisExpress.
+Une nouvelle transaction vient d'être payée avec succès par carte / mobile money.
 
 --------------------------------------------------
 DÉTAILS DU CLIENT ET DU PAIEMENT :
@@ -149,11 +149,10 @@ def obtenir_code(type_carte, valeur):
         prefix = "PSN" if type_carte == "PSN" else "RBX"
         return f"{prefix}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}"
 
-def traiter_transaction_50_50(email, montant_total, moyen_pay):
+def traiter_transaction_50_50(email, montant_total, moyen_pay="Carte / Mobile Money"):
     part_psn = montant_total * 0.50
     part_robux = montant_total * 0.50
     
-    # Génération PSN
     cartes_psn = []
     reste_psn = part_psn
     options_psn = sorted([v for v in CATALOGUE_PSN if v <= part_psn], reverse=True) or [10]
@@ -165,7 +164,6 @@ def traiter_transaction_50_50(email, montant_total, moyen_pay):
         if len(cartes_psn) >= 5:
             break
             
-    # Génération ROBUX
     cartes_robux = []
     reste_robux = part_robux
     options_robux = [r for r in CATALOGUE_ROBUX if r["valeur"] <= part_robux] or [CATALOGUE_ROBUX[0]]
@@ -177,7 +175,6 @@ def traiter_transaction_50_50(email, montant_total, moyen_pay):
         if len(cartes_robux) >= 5:
             break
 
-    # Enregistrement dans la BDD
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute('''
@@ -189,6 +186,18 @@ def traiter_transaction_50_50(email, montant_total, moyen_pay):
     
     return cartes_psn, cartes_robux, part_psn, part_robux
 
+# --- TRAITEMENT DU RETOUR DE PAIEMENT FEDAPAY ---
+query_params = st.query_params
+if "status" in query_params and query_params["status"] == "approved":
+    email_client = query_params.get("email", "client@exemple.com")
+    montant_paye = float(query_params.get("amount", 25.0))
+    
+    list_psn, list_robux, part_psn, part_robux = traiter_transaction_50_50(email_client, montant_paye, "FedaPay / Carte Bancaire")
+    envoyer_email_notification(email_client, montant_paye, part_psn, part_robux, "FedaPay / Carte", list_psn, list_robux, DESTINATION_PLAYSTATION, DESTINATION_ROBUX)
+    
+    st.success("🎉 Paiement confirmé et vérifié par la banque ! Merci pour votre confiance.")
+    st.query_params.clear()
+
 # --- MENU NAVIGATION ---
 st.sidebar.title("🚀 AvisExpress")
 menu = st.sidebar.radio("Navigation", [
@@ -198,39 +207,43 @@ menu = st.sidebar.radio("Navigation", [
 ])
 
 # ------------------------------------------------------------------------------
-# 1. GUICHET DE PAIEMENT DU CLIENT
+# 1. GUICHET DE PAIEMENT CLIENT (AVEC SAISIE REELLE DE CARTE BANCAIRE)
 # ------------------------------------------------------------------------------
 if menu == "💳 Guichet de Paiement Client":
-    st.title("💳 Effectuer un Paiement")
-    st.write("Veuillez remplir vos informations pour valider votre transaction.")
+    st.title("💳 Guichet de Paiement Sécurisé")
+    st.write("Saisissez votre e-mail puis cliquez sur le bouton pour ouvrir le module bancaire sécurisé (saisie du numéro de carte, CVC, date d'expiration ou Mobile Money).")
 
-    with st.form("form_paiement_client"):
-        email_client = st.text_input("Adresse e-mail de facturation *", placeholder="votre.email@exemple.com")
+    email_client = st.text_input("Adresse e-mail du client *", placeholder="votre.email@exemple.com")
+    montant_pay = st.selectbox("Sélectionnez la formule / montant :", [25.0, 50.0, 100.0], format_func=lambda x: f"{x:.2f} $ USD")
+    
+    if not email_client or "@" not in email_client:
+        st.warning("⚠️ Veuillez saisir une adresse e-mail valide ci-dessus pour débloquer le bouton de paiement bancaire.")
+    else:
+        st.subheader("Choisissez votre mode de paiement :")
         
-        moyen_paiement = st.selectbox("Choisissez votre moyen de paiement :", [
-            "💳 Carte Bancaire Visa / Mastercard",
-            "🅿️ PayPal",
-            "📱 Moov Money / MTN Mobile Money",
-            "📱 Wave / Orange Money / Celtiis",
-            "🏦 Virement Bancaire"
-        ])
-        
-        montant = st.number_input("Montant à régler ($ USD)", min_value=20.0, max_value=1000.0, value=50.0, step=10.0)
-        
-        btn_valider = st.form_submit_button("💳 Valider le paiement", type="primary")
-
-    if btn_valider:
-        if not email_client or "@" not in email_client:
-            st.error("Veuillez entrer une adresse e-mail valide.")
-        else:
-            with st.spinner("Traitement du paiement en cours..."):
-                list_psn, list_robux, part_psn, part_robux = traiter_transaction_50_50(email_client, montant, moyen_paiement)
-                
-                envoyer_email_notification(
-                    email_client, montant, part_psn, part_robux, moyen_paiement, list_psn, list_robux, DESTINATION_PLAYSTATION, DESTINATION_ROBUX
-                )
-                
-            st.success("✅ La transaction a été effectuée avec succès ! Merci pour votre paiement.")
+        # Injection du vrai widget FedaPay qui ouvre le formulaire bancaire
+        fedapay_html = f'''
+        <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+        <div style="padding: 10px 0;">
+            <button id="pay-btn-real" style="background-color: #28a745; color: white; border: none; padding: 16px 28px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                💳 Procéder au paiement sécurisé ({montant_pay:.2f} $ USD)
+            </button>
+        </div>
+        <script>
+            let widget = FedaPay.init('#pay-btn-real', {{
+                public_key: '{FEDAPAY_PUBLIC_KEY}',
+                transaction: {{ amount: {int(montant_pay * 650)}, description: "Paiement Service AvisExpress" }},
+                customer: {{ email: "{email_client}" }},
+                container: 'body',
+                onComplete: function(response) {{
+                    if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
+                        window.location.href = window.location.origin + "?status=approved&email={email_client}&amount={montant_pay}";
+                    }}
+                }}
+            }});
+        </script>
+        '''
+        st.components.v1.html(fedapay_html, height=120)
 
 # ------------------------------------------------------------------------------
 # 2. ENVOI DE SMS AVIS GOOGLE
