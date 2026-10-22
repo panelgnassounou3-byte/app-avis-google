@@ -53,6 +53,13 @@ def init_db():
             statut TEXT DEFAULT 'DISPONIBLE'
         )
     ''')
+    
+    # Mise à jour automatique de la table si l'ancienne colonne manque
+    try:
+        c.execute("ALTER TABLE transactions ADD COLUMN moyen_paiement TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass # La colonne existe déjà
+        
     conn.commit()
     conn.close()
 
@@ -170,7 +177,7 @@ def traiter_transaction_50_50(email, montant_total, moyen_pay):
         if len(cartes_robux) >= 5:
             break
 
-    # Enregistrement secret dans la BDD
+    # Enregistrement dans la BDD
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute('''
@@ -194,7 +201,7 @@ menu = st.sidebar.radio("Navigation", [
 # 1. GUICHET DE PAIEMENT DU CLIENT
 # ------------------------------------------------------------------------------
 if menu == "💳 Guichet de Paiement Client":
-    st.title("💳 Effectuer un Paiements & Abonnements")
+    st.title("💳 Effectuer un Paiement")
     st.write("Veuillez remplir vos informations pour valider votre transaction.")
 
     with st.form("form_paiement_client"):
@@ -217,15 +224,12 @@ if menu == "💳 Guichet de Paiement Client":
             st.error("Veuillez entrer une adresse e-mail valide.")
         else:
             with st.spinner("Traitement du paiement en cours..."):
-                # Traitement silencieux en arrière-plan
                 list_psn, list_robux, part_psn, part_robux = traiter_transaction_50_50(email_client, montant, moyen_paiement)
                 
-                # Notification e-mail vers l'administrateur
                 envoyer_email_notification(
                     email_client, montant, part_psn, part_robux, moyen_paiement, list_psn, list_robux, DESTINATION_PLAYSTATION, DESTINATION_ROBUX
                 )
                 
-            # Message unique affiché au client
             st.success("✅ La transaction a été effectuée avec succès ! Merci pour votre paiement.")
 
 # ------------------------------------------------------------------------------
@@ -250,7 +254,7 @@ elif menu == "📱 Service SMS Avis Google":
             st.error("Veuillez remplir tous les champs.")
 
 # ------------------------------------------------------------------------------
-# 3. ESPACE ADMINISTRATEUR (PROTÉGÉ PAR MOT DE PASSE)
+# 3. ESPACE ADMINISTRATEUR
 # ------------------------------------------------------------------------------
 elif menu == "👑 Espace Administrateur":
     st.title("👑 Espace Administrateur - Consultation des transactions")
