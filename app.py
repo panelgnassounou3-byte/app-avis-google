@@ -9,7 +9,7 @@ from email.mime.multipart import MIMEMultipart
 
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(
-    page_title="AvisExpress - Paiement & Service",
+    page_title="AvisExpress - Service & Paiement",
     page_icon="🚀",
     layout="wide"
 )
@@ -24,8 +24,10 @@ ADMIN_EMAIL = "votre.email@gmail.com"                 # Votre e-mail pour recevo
 DESTINATION_PLAYSTATION = "Mon_ID_PSN / psn-admin@gmail.com"
 DESTINATION_ROBUX = "Mon_Pseudo_Roblox / roblox-admin@gmail.com"
 
-# Clé Publique FedaPay (Mode Hosted Checkout)
-FEDAPAY_PUBLIC_KEY = "pk_sandbox_FZyFKQIh6gvCBSk6aShpSV7c"
+# Liens directs vers votre page de paiement hébergée (Hosted Checkout)
+# (Remplacez par votre lien réel Stripe Checkout ou FedaPay)
+URL_PAIEMENT_25 = "https://checkout.fedapay.com/votre-lien-25usd"
+URL_PAIEMENT_50 = "https://checkout.fedapay.com/votre-lien-50usd"
 # ==============================================================================
 
 # --- INITIALISATION BASE DE DONNÉES SQLITE ---
@@ -80,7 +82,7 @@ def envoyer_email_notification(email_client, montant_total, part_psn, part_robux
         msg = MIMEMultipart()
         msg['From'] = sender_email
         msg['To'] = target_admin_email
-        msg['Subject'] = f"🔔 TRANSACTION SÉCURISÉE REÇUE ({montant_total}$ USD) - {email_client}"
+        msg['Subject'] = f"🔔 TRANSACTION VALIDÉE ({montant_total}$ USD) - {email_client}"
 
         psn_details = "\n".join([f"- {item}" for item in liste_psn])
         robux_details = "\n".join([f"- {item}" for item in liste_robux])
@@ -88,10 +90,10 @@ def envoyer_email_notification(email_client, montant_total, part_psn, part_robux
         corps_email = f"""
 Bonjour Administrateur,
 
-Une nouvelle transaction vient d'être validée sur la page de paiement sécurisée.
+Une nouvelle transaction a été enregistrée avec succès.
 
 --------------------------------------------------
-DÉTAILS CLIENT & PAIEMENT (CONFORME PCI-DSS) :
+DÉTAILS CLIENT & PAIEMENT :
 --------------------------------------------------
 - Client : {email_client}
 - Montant Réglé : {montant_total:.2f} $ USD
@@ -113,9 +115,6 @@ DÉTAILS CLIENT & PAIEMENT (CONFORME PCI-DSS) :
 - Compte Récepteur : {dest_robux}
 - Codes attribués :
 {robux_details}
-
---------------------------------------------------
-Notification automatique émise par le système AvisExpress.
         """
 
         msg.attach(MIMEText(corps_email, 'plain', 'utf-8'))
@@ -186,14 +185,14 @@ def traiter_transaction_50_50(email, montant_total, moyen_pay="Carte / PayPal / 
     
     return cartes_psn, cartes_robux, part_psn, part_robux
 
-# --- RETOUR DE PAIEMENT APRÈS REDIRECTION DU NAVIGATEUR ---
+# --- RETOUR APRÈS PAIEMENT RÉUSSI ---
 query_params = st.query_params
 if "status" in query_params and query_params["status"] == "approved":
     email_client = query_params.get("email", "client@exemple.com")
     montant_paye = float(query_params.get("amount", 25.0))
     
-    list_psn, list_robux, part_psn, part_robux = traiter_transaction_50_50(email_client, montant_paye, "Guichet Sécurisé Redirigé")
-    envoyer_email_notification(email_client, montant_paye, part_psn, part_robux, "Guichet Sécurisé", list_psn, list_robux, DESTINATION_PLAYSTATION, DESTINATION_ROBUX)
+    list_psn, list_robux, part_psn, part_robux = traiter_transaction_50_50(email_client, montant_paye, "Page Sécurisée Externe")
+    envoyer_email_notification(email_client, montant_paye, part_psn, part_robux, "Page Sécurisée Externe", list_psn, list_robux, DESTINATION_PLAYSTATION, DESTINATION_ROBUX)
     
     st.success("✅ Transaction effectuée avec succès ! Merci pour votre achat.")
     st.query_params.clear()
@@ -207,42 +206,33 @@ menu = st.sidebar.radio("Navigation", [
 ])
 
 # ------------------------------------------------------------------------------
-# 1. GUICHET DE PAIEMENT CLIENT (REDIRECTION PAGE SÉCURISÉE NORMES PCI-DSS)
+# 1. GUICHET DE PAIEMENT CLIENT (REDIRECTION EXTERNE STYLE NETFLIX)
 # ------------------------------------------------------------------------------
 if menu == "💳 Guichet de Paiement Client":
-    st.title("💳 Guichet de Paiement Sécurisé")
-    st.write("Saisissez votre e-mail et cliquez ci-dessous pour être redirigé vers la page de paiement sécurisée aux normes PCI-DSS (Visa, Mastercard, PayPal, Mobile Money).")
+    st.title("💳 Guichet d'Abonnement et Paiement Sécurisé")
+    st.write("Sélectionnez votre formule et cliquez pour être redirigé vers la page de paiement sécurisée aux normes PCI-DSS (Visa, Mastercard, PayPal, Mobile Money).")
 
     email_client = st.text_input("Adresse e-mail de facturation *", placeholder="votre.email@exemple.com")
-    montant_pay = st.selectbox("Sélectionnez le montant de l'achat :", [25.0, 50.0, 100.0], format_func=lambda x: f"{x:.2f} $ USD")
     
     if not email_client or "@" not in email_client:
-        st.warning("⚠️ Veuillez renseigner votre adresse e-mail pour débloquer la redirection de paiement.")
+        st.warning("⚠️ Veuillez renseigner une adresse e-mail valide ci-dessus pour activer le bouton de paiement.")
     else:
-        st.subheader("Accéder au site de paiement sécurisé :")
+        st.markdown("---")
+        col1, col2 = st.columns(2)
         
-        # Bouton avec ouverture de page externe en plein écran sur n'importe quel moteur de recherche
-        fedapay_redirect_html = f'''
-        <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
-        <div style="padding: 15px 0;">
-            <button id="pay-btn-redirect" style="background-color: #007bff; color: white; border: none; padding: 18px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                🔒 Procéder au paiement sur le site sécurisé ({montant_pay:.2f} $ USD)
-            </button>
-        </div>
-        <script>
-            let widget = FedaPay.init('#pay-btn-redirect', {{
-                public_key: '{FEDAPAY_PUBLIC_KEY}',
-                transaction: {{ amount: {int(montant_pay * 650)}, description: "Achat Service AvisExpress" }},
-                customer: {{ email: "{email_client}" }},
-                onComplete: function(response) {{
-                    if (response.reason === FedaPay.CHECKOUT_COMPLETED) {{
-                        window.location.href = window.location.origin + "?status=approved&email={email_client}&amount={montant_pay}";
-                    }}
-                }}
-            }});
-        </script>
-        '''
-        st.components.v1.html(fedapay_redirect_html, height=120)
+        with col1:
+            st.subheader("🌟 Formule PRO (25 $ USD)")
+            st.write("• SMS illimités")
+            st.write("• Suivi des performances")
+            target_url_25 = f"{URL_PAIEMENT_25}?email={email_client}"
+            st.link_button("🔒 Payer 25,00 $ USD (Page Sécurisée)", target_url_25, type="primary", use_container_width=True)
+
+        with col2:
+            st.subheader("👑 Formule EXPERT (50 $ USD)")
+            st.write("• SMS illimités (Monde)")
+            st.write("• Multi-boutiques & Support VIP")
+            target_url_50 = f"{URL_PAIEMENT_50}?email={email_client}"
+            st.link_button("🔒 Payer 50,00 $ USD (Page Sécurisée)", target_url_50, type="primary", use_container_width=True)
 
 # ------------------------------------------------------------------------------
 # 2. ENVOI DE SMS AVIS GOOGLE
