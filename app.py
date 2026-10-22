@@ -2,33 +2,40 @@ import streamlit as st
 import sqlite3
 import random
 import datetime
+import pandas as pd
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(
-    page_title="AvisExpress - Collection & Récompenses",
+    page_title="AvisExpress - Admin & Récompenses",
     page_icon="🚀",
-    layout="centered"
+    layout="wide"
 )
+
+# --- MOT DE PASSE ADMIN ---
+# (À modifier par votre mot de passe administrateur personnalisé)
+PASSWORD_ADMIN = "admin123"
 
 # --- INITIALISATION DE LA BASE DE DONNÉES SQLITE ---
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    # Table des transactions
     c.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL,
             montant_total REAL NOT NULL,
+            part_psn REAL DEFAULT 0,
+            part_robux REAL DEFAULT 0,
             codes_psn TEXT NOT NULL,
             codes_robux TEXT NOT NULL,
+            dest_psn TEXT DEFAULT '',
+            dest_robux TEXT DEFAULT '',
             date_transaction TEXT NOT NULL
         )
     ''')
-    # Table du stock de cartes cadeaux
     c.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +50,7 @@ def init_db():
 
 init_db()
 
-# --- ENVOI DE NOTIFICATION PAR E-MAIL ---
+# --- FONCTION DE NOTIFICATION EMAIL ---
 def envoyer_email_notification(email_client, montant_total, part_psn, part_robux, liste_psn, liste_robux, destination_psn, destination_robux):
     try:
         smtp_server = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
@@ -130,7 +137,7 @@ def obtenir_code(type_carte, valeur):
         prefix = "PSN" if type_carte == "PSN" else "RBX"
         return f"{prefix}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}"
 
-def generer_repartition_50_50(email, montant_total):
+def generer_repartition_50_50(email, montant_total, dest_psn="", dest_robux=""):
     part_psn = montant_total * 0.50
     part_robux = montant_total * 0.50
     
@@ -164,22 +171,20 @@ def generer_repartition_50_50(email, montant_total):
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute('''
-        INSERT INTO transactions (email, montant_total, codes_psn, codes_robux, date_transaction)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (email, montant_total, " | ".join(cartes_psn), " | ".join(cartes_robux), datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        INSERT INTO transactions (email, montant_total, part_psn, part_robux, codes_psn, codes_robux, dest_psn, dest_robux, date_transaction)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (email, montant_total, part_psn, part_robux, " | ".join(cartes_psn), " | ".join(cartes_robux), dest_psn, dest_robux, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
     
     return cartes_psn, cartes_robux, part_psn, part_robux
 
-# --- INTERFACE UTILISATEUR ---
-st.title("🚀 AvisExpress")
-st.write("Plateforme de collecte d'avis clients & Conversion de récompenses")
-
-menu = st.sidebar.radio("Navigation", ["📱 Envoi d'Avis SMS", "🎁 Répartition 50/50 Récompenses"])
+# --- MENU NAVIGATION ---
+st.sidebar.title("🚀 AvisExpress")
+menu = st.sidebar.radio("Navigation", ["📱 Envoi d'Avis SMS", "🎁 Répartition 50/50 Récompenses", "👑 Espace Administrateur"])
 
 if menu == "📱 Envoi d'Avis SMS":
-    st.header("Envoyer une demande d'avis")
+    st.title("📱 Service de Collecte d'Avis SMS")
     nom_commerce = st.text_input("Nom de votre commerce", "Mon Commerce")
     telephone = st.text_input("Numéro du client (avec indicatif)", "+229...")
     lien_google = st.text_input("Lien Google Review", "https://g.page/r/...")
@@ -191,7 +196,7 @@ if menu == "📱 Envoi d'Avis SMS":
             st.error("Veuillez remplir tous les champs.")
 
 elif menu == "🎁 Répartition 50/50 Récompenses":
-    st.header("Convertir un montant en Cartes Cadeaux (50% PSN / 50% Robux)")
+    st.title("🎁 Conversion 50/50 (PlayStation & Robux)")
     
     with st.form("form_conversion"):
         email = st.text_input("Adresse E-mail du client *", placeholder="client@gmail.com")
@@ -208,7 +213,7 @@ elif menu == "🎁 Répartition 50/50 Récompenses":
         if not email or "@" not in email:
             st.error("Veuillez entrer une adresse e-mail valide.")
         else:
-            list_psn, list_robux, part_psn, part_robux = generer_repartition_50_50(email, montant)
+            list_psn, list_robux, part_psn, part_robux = generer_repartition_50_50(email, montant, dest_psn, dest_robux)
             
             st.success("✅ Conversion effectuée avec succès et enregistrée !")
             
@@ -240,3 +245,43 @@ elif menu == "🎁 Répartition 50/50 Récompenses":
                 )
                 if succes_email:
                     st.success("📧 Notification e-mail envoyée à l'administrateur !")
+
+elif menu == "👑 Espace Administrateur":
+    st.title("👑 Tableau de Bord Administrateur")
+    
+    # Authentification Admin
+    pwd_input = st.text_input("Saisissez le mot de passe Administrateur :", type="password")
+    
+    if pwd_input == PASSWORD_ADMIN:
+        st.success("Accès administrateur autorisé !")
+        
+        # Récupération des données SQLite
+        conn = sqlite3.connect('database.db')
+        df_trans = pd.read_sql_query("SELECT * FROM transactions ORDER BY id DESC", conn)
+        conn.close()
+        
+        if df_trans.empty:
+            st.info("Aucune transaction enregistrée pour le moment.")
+        else:
+            # Compteurs et Métriques
+            total_global = df_trans['montant_total'].sum()
+            total_psn = df_trans['part_psn'].sum()
+            total_robux = df_trans['part_robux'].sum()
+            
+            col_a, col_b, col_c = st.columns(3)
+            col_a.metric("Total Général Traité", f"{total_global:.2f} $")
+            col_b.metric("Total Alloué PlayStation", f"{total_psn:.2f} $")
+            col_c.metric("Total Alloué Robux", f"{total_robux:.2f} $")
+            
+            st.markdown("---")
+            st.subheader("📋 Historique complet des transactions 50/50")
+            
+            # Affichage du tableau interactif
+            st.dataframe(df_trans, use_container_width=True)
+            
+            # Téléchargement CSV
+            csv = df_trans.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Télécharger le rapport CSV", data=csv, file_name="rapport_admin_transactions.csv", mime="text/csv")
+            
+    elif pwd_input != "":
+        st.error("Mot de passe incorrect.")
