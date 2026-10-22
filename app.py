@@ -17,12 +17,12 @@ st.set_page_config(
 # ==============================================================================
 # ⚙️ --- CONFIGURATION ADMINISTRATEUR (METTEZ VOS INFORMATIONS ICI) ---
 # ==============================================================================
-PASSWORD_ADMIN = "mon_mot_de_passe_secret_123"  # <--- VOTRE MOT DE PASSE ADMIN
-ADMIN_EMAIL = "votre.email@gmail.com"             # <--- VOTRE E-MAIL POUR RECEVOIR LES NOTIFS
+PASSWORD_ADMIN = "ArmiAne_84"  # <--- VOTRE MOT DE PASSE ADMIN
+ADMIN_EMAIL = "panelgnassounou3@gmail.com"             # <--- VOTRE E-MAIL POUR RECEVOIR LES NOTIFS
 
 # Destinations par défaut des fonds (Vos identifiants de compte)
-DESTINATION_PLAYSTATION = "Mon_ID_PSN / psn-admin@gmail.com" # <--- ID/EMAIL PSN ADMIN
-DESTINATION_ROBUX = "Mon_Pseudo_Roblox / roblox-admin@gmail.com" # <--- PSEUDO/EMAIL ROBLOX ADMIN
+DESTINATION_PLAYSTATION = "panelgnassounou3+jeux@gmail.com" # <--- ID/EMAIL PSN ADMIN
+DESTINATION_ROBUX = "nelma4231" # <--- PSEUDO/EMAIL ROBLOX ADMIN
 # ==============================================================================
 
 # --- INITIALISATION DE LA BASE DE DONNÉES SQLITE ---
